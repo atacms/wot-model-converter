@@ -1,12 +1,13 @@
 # World of Tanks Model Converter
-Converts World of Tanks models to wavefront obj format.
+Converts World of Tanks models to wavefront obj or collada dae format.
 
 ## Notes
 * script only parse diffuse textures
-* all primitive groups are packed into one single obj file at this time
-* skinned weight can be extracted but not supported by wavefront obj. Another branch for FBX/DAE exporter would be necessary.
+* all primitive groups are packed into one exported file at this time
+* skinned weight are not supported by wavefront obj. Collada DAE can do the trick. Weight export is still in development but nodes can be exported ATM.
 * support new primitives variant used in WoT v0.9.12+ HD models. 
 * model mirroring is adapt to standard WG models. Results for models built by other parties are not guaranteed.
+* a slightly modified version of pycollada is used. The changes are not final so it's currently not linked to pycollada's github repo but instead included a copy in this project's lib folder
 
 ## Additional credits (not mentioned on github)
 Thanks to Phux_and_the_Wheel_Bearing (AKA Coffee_), from whose code this script originates
@@ -18,12 +19,12 @@ Script can compress result obj and mtl files using zlib.
 usage: convert-primitive.py [-h] [-v VISUAL] [-o OBJ] [-m MTL] [-t TEXTURES]
                             [-sx SCALEX] [-sy SCALEY] [-sz SCALEZ]
                             [-tx TRANSX] [-ty TRANSY] [-tz TRANSZ] [-c] [-nm]
-                            [-nvt] [-nvn]
+                            [-nvt] [-nvn] [-f FORMAT]
                             input
 
 or convert-primitive.py [-gui]
 
-Converts BigWorld primitives file to obj.
+Converts BigWorld primitives file to obj or dae.
 
 positional arguments:
   input                 primitives file path (wildcard accepted)
@@ -32,7 +33,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -v VISUAL, --visual VISUAL
                         visual file path
-  -o OBJ, --obj OBJ     result obj path
+  -o OBJ, --output OBJ  result obj/dae path
   -m MTL, --mtl MTL     result mtl path
   -t TEXTURES, -t TEXTURES
                         path to textures
@@ -52,6 +53,7 @@ optional arguments:
   -nm, --nomtl          don't output material
   -nvt, --novt          don't output UV coordinates
   -nvn, --novn          don't output normals
+  -f FORMAT             choose output format. FORMAT accepts obj or collada. Default to wavefront obj
 ```
 
 ## Example
@@ -73,3 +75,4 @@ will open window with options of exports
 
 ## Requirements
 Python 2.7 - 3.5
+numpy
