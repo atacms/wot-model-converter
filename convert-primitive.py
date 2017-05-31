@@ -174,7 +174,10 @@ if not show_gui:
 		# Read and write at same time
 		with open(filename_primitive, 'rb') as primitives_f:
 			with open(filename_visual, 'rb') as visual_f:
-				model_writer.write(model_reader.read(primitives_f, visual_f), filename_obj, filename_mtl)
+				tmp = model_reader.read(primitives_f, visual_f)
+				model_writer.write(tmp, filename_obj, filename_mtl)
+
+#				model_writer.write(model_reader.read(primitives_f, visual_f), filename_obj, filename_mtl)
 
 
 

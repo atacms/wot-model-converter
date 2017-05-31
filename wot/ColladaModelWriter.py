@@ -13,6 +13,10 @@ from wot.ModelWriter import ModelWriter
 #####################################################################
 # ColladaModelWriter
 
+def m12to16(a):
+	ret = [a[0]]+[a[6]]+[a[3]]+[a[9]]+[a[1]]+[a[7]]+[a[4]]+[a[10]]+[-a[2]]+[-a[8]]+[-a[5]]+[-a[11]]+[0,0,0,1]
+	return ret
+
 class ColladaModelWriter(ModelWriter):
 	ext = '.dae'
 	material = False
@@ -41,6 +45,22 @@ class ColladaModelWriter(ModelWriter):
 		self.compress = compress
 		self.scale = scale
 
+	def _readScene(self, name, inDict):
+		import collada, numpy
+		children = []
+		xarray = m12to16(inDict['transform'])
+		transforms=[]
+		transforms.append(collada.scene.RotateTransform(1,0,0,90))
+		transforms.append(collada.scene.MatrixTransform(numpy.array(xarray,dtype=numpy.float32)))
+		xmlnode = None
+		for ele in inDict['children']:
+			if 'BlendBone' in ele:
+				continue
+			children += [self._readScene(ele,inDict['children'][ele])]
+#node = collada.scene.Node('node0', children=node_children)
+		return collada.scene.Node(name,children,transforms,xmlnode)
+		
+	
 	def baseTextureCallback(self, texture, type):
 		return self.textureBase + texture
 
@@ -181,10 +201,33 @@ class ColladaModelWriter(ModelWriter):
 
 				node_children.append(geomnode)
 
+		#this is why we're missing all the dummy nodes.
+		#rewrite this section
+		'''
 		node = collada.scene.Node('node0', children=node_children)
 		myscene = collada.scene.Scene('myscene', [node])
 		mesh.scenes.append(myscene)
 		mesh.scene = myscene
+		'''
+		#new scene:
+		#_unpackNodesToScene
+		print 'new section start'
+		sceneRootName = primitive.nodes.keys()[0]
+		nodes=[]
+		for ele in primitive.nodes[sceneRootName]['children']:
+			nodes.append( self._readScene(ele,primitive.nodes[sceneRootName]['children'][ele]))
+#		sceneRootNode.transforms = []		#somehow i'm getting -100% scaling at SceneRoot
+		nodes.append(collada.scene.Node('node0', children=node_children))
+		myscene = collada.scene.Scene('myscene', nodes)
+		mesh.scenes.append(myscene)
+		mesh.scene = myscene
+		
+		
+		#asset info for WoT (1 unit/meter, Z_UP)
+		from collada.asset import UP_AXIS
+		mesh.assetInfo.unitname = 'meter'
+		mesh.assetInfo.unitmeter = 1.0
+		mesh.assetInfo.upaxis = UP_AXIS.Z_UP
 
 		mesh.write(filename)
 
