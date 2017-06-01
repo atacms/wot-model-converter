@@ -278,8 +278,8 @@ class ModelReader:
 
 		# Load basic info - xyznuv
 		(x, z, y) = unpack('<3f', data.read(12))
-		if vtype.IS_SKINNED:
-			y = -y
+		if vtype.IS_SKINNED:	#invert Y here seems to be causing trouble for some subtype of skinned parts. WG is roughly unaffected. customized export without invert face is wrong. with invert faces is not tested
+			y = -y		#maybe to move this mechanism to obj export module to protect the integrity of main data repository.
 		vert.position = (x, y, z)
 		vert.normal = self.readNormal(data, vtype.IS_NEW)
 		(u, v) = unpack('<2f', data.read(8))
@@ -306,6 +306,7 @@ class ModelReader:
 			(weight1, weight2) = unpack('2B', data.read(2))
 			(weight1, weight2) = (weight1/255.0, weight2/255.0)
 			weight3 = 1.0 - weight1 - weight2
+			vert.index = (index1, index2, index3)
 			vert.weight = (weight1, weight2, weight3)
 			vert.tangent = unp('<I', data.read(4))
 			vert.binormal = unp('<I', data.read(4))
