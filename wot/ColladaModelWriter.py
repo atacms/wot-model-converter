@@ -7,7 +7,7 @@
 
 import zlib
 from wot.ModelWriter import ModelWriter
-
+import pdb
 
 
 #####################################################################
@@ -15,6 +15,10 @@ from wot.ModelWriter import ModelWriter
 
 def m12to16(a):
 	ret = [a[0]]+[a[6]]+[a[3]]+[a[9]]+[a[1]]+[a[7]]+[a[4]]+[a[10]]+[-a[2]]+[-a[8]]+[-a[5]]+[-a[11]]+[0,0,0,1]
+	return ret
+
+def m12to16bind(a):
+	ret = [a[0]]+[a[6]]+[a[3]]+[a[9]]+[-a[2]]+[-a[8]]+[-a[5]]+[a[11]]+[a[1]]+[a[7]]+[a[4]]+[a[10]]+[0,0,0,1]
 	return ret
 
 class ColladaModelWriter(ModelWriter):
@@ -45,6 +49,31 @@ class ColladaModelWriter(ModelWriter):
 		self.compress = compress
 		self.scale = scale
 
+	def _getMatrixByName(self, inDict, name):
+		import collada, numpy
+		for ele in inDict['children']:
+			if ele == name:	#we have a match, return child's matrix
+				xarray = m12to16bind(inDict['children'][ele]['transform'])	#data here is a 16x1 list
+				print xarray
+				'''
+				rmatrix = collada.scene.RotateTransform(1,0,0,90)
+				rmatrix2 = collada.scene.RotateTransform(0,1,0,0)
+				rmatrix3 = collada.scene.RotateTransform(0,0,1,0)
+				bmatrix = collada.scene.MatrixTransform(numpy.array(xarray,dtype=numpy.float32))
+				retmatrix = numpy.identity(4, dtype=numpy.float32)
+				retmatrix = numpy.dot(retmatrix, rmatrix.matrix)
+				retmatrix = numpy.dot(retmatrix, rmatrix2.matrix)
+				retmatrix = numpy.dot(retmatrix, rmatrix3.matrix)
+				retmatrix = numpy.dot(retmatrix, bmatrix.matrix)
+				retlist = retmatrix.tolist()
+				return retlist
+				'''
+				return xarray
+			else:
+				ret = self._getMatrixByName(inDict['children'][ele],name)
+				if ret is not None:
+					return ret
+	
 	def _readScene(self, name, inDict):
 		import collada, numpy
 		children = []
@@ -159,10 +188,13 @@ class ColladaModelWriter(ModelWriter):
 					indices.append(value)
 
 				# Add group vertices
+				xc=0
 				for vertex in group.vertices:
 					vert_values.extend(self.multiply(vertex.position, scale))
 					normal_values.extend(self.multiply(vertex.normal, scale))
 					uv_values.extend(vertex.uv)
+					xc+=1
+				print 'position vector count:%d'%xc
 
 				vert_src = collada.source.FloatSource(
 					'%s_verts' % name,
@@ -201,6 +233,126 @@ class ColladaModelWriter(ModelWriter):
 
 				node_children.append(geomnode)
 
+		sceneRootName = primitive.nodes.keys()[0]
+
+		
+		#asset info for WoT (1 unit/meter, Z_UP)
+		from collada.asset import UP_AXIS
+		mesh.assetInfo.unitname = 'meter'
+		mesh.assetInfo.unitmeter = 1.0
+		mesh.assetInfo.upaxis = UP_AXIS.Z_UP
+		
+		#skinned controllers
+		
+		for [idxRset, eleRset] in enumerate(primitive.renderSets):
+				print 'something'
+				renderSet = primitive.renderSets[idxRset]
+				if len(eleRset.nodes)>0 and eleRset.nodes[0]!='Scene Root':	#for each renderSet
+					print 'skinned renderSet'
+					print '# of primitiveGroups in this set: %d'
+					len(eleRset.groups)
+					sourcebyid = {}
+					sources = []
+#					ch = source.Source.load(collada, {}, sourcenode)
+#					ch = collada.source.Source
+
+#source.py:82
+					geoName = mesh.geometries[idxRset].id
+					geometry = mesh.geometries[geoName]
+					controllerName = geoName + 'Controller'
+					sourceID_joints = controllerName+'-Joints'	#this is a 'Name_array' containing controller name
+#					sourceArray = NameSource.load(collada, localscope, node)
+#					sourceArray = collada.source.NameSource( sourceid, data, tuple(components), xmlnode=node )
+#source.py:394
+					boneListRaw = [v.strip() for v in renderSet.nodes ]
+					boneListRaw2 = [v.split('_BlendBone')[0] for v in boneListRaw]
+					if 'BlendBone' in boneListRaw2[0]:
+						boneList = [v.split('BlendBone')[0] for v in boneListRaw2]
+					else:
+						boneList = boneListRaw2
+					data = numpy.array(boneList, dtype = numpy.string_)
+					components = ('JOINT',)
+					source_joints = collada.source.NameSource(sourceID_joints, data, components, None)
+
+#controller matrices is a float array
+					data = []
+					for ele in boneListRaw:
+						m = self._getMatrixByName(primitive.nodes[sceneRootName],ele)
+						if m is not None:
+							data.append(m)
+					strArray = str(data)
+					strArray = strArray.replace(',',' ')
+					strArray = strArray.replace('[','')
+					strArray = strArray.replace(']','')
+					data = numpy.fromstring(strArray,dtype=numpy.float32, sep=' ')
+					data[numpy.isnan(data)] = 0
+					data.shape=(-1,4,4)
+					print 'size of matrics retrieved: %d'%len(data)
+					sourceID_matrices = controllerName+'-Matrices'
+					source_matrices = collada.source.FloatSource(sourceID_matrices ,data,(None,),None)
+
+#controller weights is a float array
+					data = []
+					vcount = []
+					v = []
+					indicesFromCollada = geometry.primitives[0].indices
+					indicesFromCollada.shape = (-1,3)
+					vertexIndexFromCollada = []
+					for i in indicesFromCollada:
+						vertexIndexFromCollada.append(i[0])
+					for [idxGroup, eleGroup] in enumerate(renderSet.groups):
+						ptW = 0
+						for idxV,vertex in enumerate(eleGroup.vertices):
+#						for idxV in eleGroup.indices:
+#							vertex = eleGroup.vertices[idxV]
+#							print 'weight of vertex %d is %s' %(idxV,str(vertex.weight)) 
+							vc=0
+							lstBone = vertex.index
+							lstWeight = vertex.weight
+							for [idxW, w] in enumerate(lstWeight):
+								if abs(w)>=0.001:
+									data.append(w)
+									v.append(lstBone[idxW])
+									v.append(ptW)
+									ptW += 1
+									vc += 1
+							vcount.append(vc)
+					data = numpy.array(data,dtype=numpy.float32)
+					sourceID_weights = controllerName+'-Weights'
+					source_weights = collada.source.FloatSource(sourceID_weights ,data,('WEIGHT',),None)
+
+#added sources to repo
+					sources.append(source_joints)
+					sources.append(source_matrices)
+					sources.append(source_weights)
+					sourcebyid[source_joints.id] = source_joints
+					sourcebyid[source_matrices.id] = source_matrices
+					sourcebyid[source_weights.id] = source_weights
+#					pdb.set_trace()
+					
+# now mimic controller.Skin.load(collada, sourcebyid, controller, node)			
+					
+					print 'template dae has a strange shape matrix at -0.5,0.5,0'
+					print 'use identity matrix as replacement for the time being'
+
+					# bind_shape_mat is most probably the pivot location of the geometry 
+					# It's important sometimes
+					# because position matrix probably based their coordinate on this pivot
+					# WG standard model should have centered pivot though.
+					bind_shape_mat = numpy.identity(4, dtype=numpy.float32)
+					bind_shape_mat.shape = (-1,)
+					joint_source = sourceID_joints
+					matrix_source = sourceID_matrices
+					index = numpy.array(v,dtype=numpy.int32)
+					vcounts = numpy.array(vcount, dtype=numpy.int32)
+					weight_joint_source = sourceID_joints
+					weight_source = sourceID_weights
+					offsets = [0,1]
+					controller_skin = collada.controller.Skin(sourcebyid, bind_shape_mat, joint_source, matrix_source,
+                weight_source, weight_joint_source, vcounts, index, offsets,
+                geometry, None, None, controllerName)
+					mesh.controllers.append(controller_skin)
+					
 		#this is why we're missing all the dummy nodes.
 		#rewrite this section
 		'''
@@ -211,24 +363,28 @@ class ColladaModelWriter(ModelWriter):
 		'''
 		#new scene:
 		#_unpackNodesToScene
-		print 'new section start'
-		sceneRootName = primitive.nodes.keys()[0]
+		print 'dumping scene to collada '
 		nodes=[]
 		for ele in primitive.nodes[sceneRootName]['children']:
 			nodes.append( self._readScene(ele,primitive.nodes[sceneRootName]['children'][ele]))
 #		sceneRootNode.transforms = []		#somehow i'm getting -100% scaling at SceneRoot
-		nodes.append(collada.scene.Node('node0', children=node_children))
+		if len(mesh._controllers)==0:
+			print '******not skinned'
+			nodes.append(collada.scene.Node('node0', children=node_children))
+		else:
+			print '******skinned'
+			node_children_skinned = []
+			for ele in mesh._controllers:
+				node_children_skinned.append(collada.scene.ControllerNode(ele,[]))	#todo: material node support
+			nodes.append(collada.scene.Node(ele.id.rstrip('Controller'), children=node_children_skinned))
 		myscene = collada.scene.Scene('myscene', nodes)
 		mesh.scenes.append(myscene)
 		mesh.scene = myscene
 		
-		
-		#asset info for WoT (1 unit/meter, Z_UP)
-		from collada.asset import UP_AXIS
-		mesh.assetInfo.unitname = 'meter'
-		mesh.assetInfo.unitmeter = 1.0
-		mesh.assetInfo.upaxis = UP_AXIS.Z_UP
+				
+#	if primitive.renderSets
 
+#		pdb.set_trace()
 		mesh.write(filename)
 
 		return filename

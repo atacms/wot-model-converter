@@ -155,12 +155,16 @@ class FloatSource(Source):
 
     def save(self):
         """Saves the source back to :attr:`xmlnode`"""
+        shape_in = self.data.shape
         self.data.shape = (-1,)
 
         txtdata = ' '.join(map(lambda x: '%.7g'%x , self.data.tolist()))
 
         rawlen = len( self.data )
-        self.data.shape = (-1, len(self.components) )
+        if len(self.components) == 1 and self.components[0]==None:	#no components provided 
+            self.data.shape = shape_in
+        else:
+            self.data.shape = (-1, len(self.components) )
         acclen = len( self.data )
         node = self.xmlnode.find(tag('float_array'))
         node.text = txtdata
@@ -170,9 +174,16 @@ class FloatSource(Source):
         node.clear()
         node.set('count', str(acclen))
         node.set('source', '#'+self.id+'-array')
-        node.set('stride', str(len(self.components)))
-        for c in self.components:
-            node.append(E.param(type='float', name=c))
+        if len(self.components) == 1 and self.components[0]==None:
+            node.set('stride', str(rawlen/acclen))
+            if shape_in[1::] == (4,4):
+                node.append(E.param(type='float4x4'))
+            else:
+                node.append(E.param(type='float'))
+        else:
+            node.set('stride', str(len(self.components)))
+            for c in self.components:
+                node.append(E.param(type='float', name=c))
         self.xmlnode.set('id', self.id )
 
     @staticmethod

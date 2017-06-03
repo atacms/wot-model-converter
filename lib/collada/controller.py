@@ -17,7 +17,7 @@
 import numpy
 
 from collada import source
-from collada.common import DaeObject, tag
+from collada.common import DaeObject, E, tag
 from collada.common import DaeIncompleteError, DaeBrokenRefError, \
         DaeMalformedError, DaeUnsupportedError
 from collada.geometry import Geometry
@@ -59,7 +59,7 @@ class Skin(Controller):
 
     def __init__(self, sourcebyid, bind_shape_matrix, joint_source, joint_matrix_source,
                  weight_source, weight_joint_source, vcounts, vertex_weight_index,
-                 offsets, geometry, controller_node=None, skin_node=None):
+                 offsets, geometry, controller_node=None, skin_node=None, controllerID=None):
         """Create a skin.
 
         :Parameters:
@@ -88,9 +88,12 @@ class Skin(Controller):
             XML node of the <controller> tag which is the parent of this
           skin_node
             XML node of the <skin> tag if this is from there
+          controllerID
+            The string id for current controller (optional)
+            if controller_node is not provided, feed controllerID from here directly
 
         """
-        self.sourcebyid = sourcebyid
+        self.sourceById = sourcebyid
         self.bind_shape_matrix = bind_shape_matrix
         self.joint_source = joint_source
         self.joint_matrix_source = joint_matrix_source
@@ -102,12 +105,16 @@ class Skin(Controller):
         self.geometry = geometry
         self.controller_node = controller_node
         self.skin_node = skin_node
-        self.xmlnode = controller_node
+        
 
         if not type(self.geometry) is Geometry:
             raise DaeMalformedError('Invalid reference geometry in skin')
 
-        self.id = controller_node.get('id')
+        if controller_node is not None:
+          self.id = controller_node.get('id')
+        else:
+        	if controllerID:
+        		self.id = controllerID
         if self.id is None:
             raise DaeMalformedError('Controller node requires an ID')
 
@@ -163,6 +170,48 @@ class Skin(Controller):
         self.max_weight_index = numpy.max( [numpy.max(weight) if len(weight) > 0 else 0 for weight in self.weight_index] )
         checkSource(self.weight_joints, ('JOINT',), self.max_joint_index)
         checkSource(self.weights, ('WEIGHT',), self.max_weight_index)
+        
+# original lib missing xml reconstruct clause        
+        if controller_node is not None:
+          self.xmlnode = controller_node
+        else:
+          sourcenodes = []
+          for srcid ,src in self.sourceById.items():
+            sourcenodes.append(src.xmlnode)
+          controllernode = E.skin(*sourcenodes)
+          if len(geometry.id) > 0: controllernode.set("source", '#'+geometry.id)
+
+          #construct bind_shape_matrix xml node
+          node = E.bind_shape_matrix()
+          bind_shape_matrix.shape=(-1,)
+          node.text = ' '.join(map(str, bind_shape_matrix.tolist() ))
+          controllernode.append(node)
+          
+          #construct <joints> node
+          node = E.joints()
+          node.append(E.input(semantic="JOINT", source="#%s"%self.joint_source))
+          node.append(E.input(semantic="INV_BIND_MATRIX", source="#%s"%self.joint_matrix_source))
+          controllernode.append(node)
+          
+          #construct <vertex_weights> node
+          node = E.vertex_weights()
+          #todo: offset is hardcoded here. 
+          node.append(E.input(semantic="JOINT", offset="0", source="#%s"%self.weight_joint_source))
+          node.append(E.input(semantic="WEIGHT", offset="1", source="#%s"%self.weight_source))
+          nodevcount = E.vcount()
+          nodevcount.text = ' '.join(map(str,self.vcounts))
+          node.append(nodevcount)
+          nodev = E.v()
+          nodev.text = ' '.join(map(str,self.vertex_weight_index))
+          node.set("count",str(len(self.vcounts)))
+          node.append(nodev)
+          controllernode.append(node)
+
+
+          self.xmlnode = E.controller(controllernode)
+          if len(self.id) > 0: self.xmlnode.set("id", self.id)
+          
+        
 
     def __len__(self):
         return len(self.index)
@@ -257,6 +306,46 @@ class Skin(Controller):
         return Skin(localscope, bind_shape_mat, joint_source, matrix_source,
                 weight_source, weight_joint_source, vcounts, index, offsets,
                 geometry, controllernode, skinnode)
+
+    def save(self):
+        """Saves the skin controller back to :attr:`xmlnode`"""
+        skinnode = self.xmlnode.find(tag('skin'))
+        for src in self.sourceById.values():
+            if isinstance(src, source.Source):
+                src.save()
+                if src.xmlnode not in skinnode.getchildren():
+                    skinnode.insert(0, src.xmlnode)
+                    
+        deletenodes = []
+        for oldsrcnode in skinnode.findall(tag('source')):
+            if oldsrcnode not in [src.xmlnode
+                    for src in self.sourceById.values()
+                    if isinstance(src,source.Source)]:
+                deletenodes.append(oldsrcnode)
+        for d in deletenodes:
+            skinnode.remove(d)        
+            
+        '''
+        #Look through skin controller to find a joints source
+        jointsnode = self.xmlnode.find(tag('skin')).find(tag('joints'))            
+
+        #delete any inputs in joints tag that no longer exist and find the joint and inv_bind_matrix input
+        delete_inputs = []
+        for input_node in jointsnode.findall(tag('input')):
+            if input_node.get('semantic') == 'JOINT':
+                input_jointnode = input_node
+            elif input_node.get('semantic') == 'INV_BIND_MATRIX':
+                input_matrixnode = input_node
+            else:
+                srcid = input_node.get('source')[1:]
+                if srcid not in self.sourceById:
+                    delete_inputs.append(input_node)
+
+        for node in delete_inputs:
+            jointsnode.remove(node)
+            
+        print 'todo: other components other than sources'
+        '''
 
 
 class BoundSkin(BoundController):

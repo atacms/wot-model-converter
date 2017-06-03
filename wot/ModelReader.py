@@ -16,8 +16,8 @@ import xml.etree.ElementTree as ET
 from struct import unpack
 from io import BytesIO
 from sys import version_info
-
-
+isSkinned = False
+import numpy
 
 if version_info < (3, 0, 0):
 	range = xrange
@@ -185,12 +185,35 @@ class ModelReader:
 				self.out('group indices %d / %d (%d - %d)' % ((i_to - i_from), len(indices), i_from, i_to))
 				self.out('group vertices %d / %d (%d - %d)' % ((v_to - v_from), len(vertices), v_from, v_to))
 
-				primitive_groups.append(PrimitiveGroup(
-					origin = origin,
-					material = material,
-					vertices = vertices[v_from:v_to],
+#reverse triangle order for skinned objects
+				'''
+				if isSkinned:
+					print 'skinned. reversing triangle order in reading'
 					indices = [v - groups[index]['startVertex'] for v in indices[i_from:i_to]]
-				))
+					indicesRev = []
+					tmp = numpy.array(indices)
+					tmp.shape = (-1,3)
+					for ele in tmp:
+						indicesRev.append(ele[2])
+						indicesRev.append(ele[1])
+						indicesRev.append(ele[0])
+					primitive_groups.append(PrimitiveGroup(
+							origin = origin,
+							material = material,
+							vertices = vertices[v_from:v_to],
+							indices = indicesRev
+					))
+					print indices[0:10]
+					print indicesRev[0:10]
+				else:
+				'''
+				if True:
+						primitive_groups.append(PrimitiveGroup(
+						origin = origin,
+						material = material,
+						vertices = vertices[v_from:v_to],
+						indices = [v - groups[index]['startVertex'] for v in indices[i_from:i_to]]
+						))
 
 			# Save render set
 			sets.append(RenderSet(
@@ -274,11 +297,13 @@ class ModelReader:
 				return vt_XYZNUV
 
 	def readVertice(self, data, vtype):
+		global isSkinned
 		vert = Vertex()
 
 		# Load basic info - xyznuv
 		(x, z, y) = unpack('<3f', data.read(12))
 		if vtype.IS_SKINNED:	#invert Y here seems to be causing trouble for some subtype of skinned parts. WG is roughly unaffected. customized export without invert face is wrong. with invert faces is not tested
+			isSkinned = True
 			y = -y		#maybe to move this mechanism to obj export module to protect the integrity of main data repository.
 		vert.position = (x, y, z)
 		vert.normal = self.readNormal(data, vtype.IS_NEW)

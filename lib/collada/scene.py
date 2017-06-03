@@ -349,7 +349,7 @@ class Node(SceneNode):
             self.xmlnode = xmlnode
             """ElementTree representation of the transform."""
         else:
-            self.xmlnode = E.node(id=self.id, name=self.id)
+            self.xmlnode = E.node(id=self.id, name=self.id, sid=self.id)
             for t in self.transforms:
                 self.xmlnode.append(t.xmlnode)
             for c in self.children:
