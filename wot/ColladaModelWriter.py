@@ -135,7 +135,7 @@ class ColladaModelWriter(ModelWriter):
 		mesh = collada.Collada()
 		node_children = []
 
-		# Export all render sets as separate obejcts
+		# Export all primitiveGroups in renderSets as separate obejcts
 		for rindex, render_set in enumerate(primitive.renderSets):
 			for gindex, group in enumerate(render_set.groups):
 				material = group.material
@@ -245,12 +245,10 @@ class ColladaModelWriter(ModelWriter):
 		#skinned controllers
 		
 		for [idxRset, eleRset] in enumerate(primitive.renderSets):
-				print 'something'
 				renderSet = primitive.renderSets[idxRset]
 				if len(eleRset.nodes)>0 and eleRset.nodes[0]!='Scene Root':	#for each renderSet
 					print 'skinned renderSet'
-					print '# of primitiveGroups in this set: %d'
-					len(eleRset.groups)
+					print '# of primitiveGroups in this set: %d'%len(eleRset.groups)
 					sourcebyid = {}
 					sources = []
 #					ch = source.Source.load(collada, {}, sourcenode)
@@ -373,10 +371,11 @@ class ColladaModelWriter(ModelWriter):
 			nodes.append(collada.scene.Node('node0', children=node_children))
 		else:
 			print '******skinned'
-			node_children_skinned = []
+			
 			for ele in mesh._controllers:
+				node_children_skinned = []
 				node_children_skinned.append(collada.scene.ControllerNode(ele,[]))	#todo: material node support
-			nodes.append(collada.scene.Node(ele.id.rstrip('Controller'), children=node_children_skinned))
+				nodes.append(collada.scene.Node(ele.id.rstrip('Controller'), children=node_children_skinned))
 		myscene = collada.scene.Scene('myscene', nodes)
 		mesh.scenes.append(myscene)
 		mesh.scene = myscene
