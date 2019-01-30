@@ -1,5 +1,19 @@
 # World of Tanks Model Converter
 Converts World of Tanks models to wavefront obj or collada dae format.
+*obj contains only geometry mesh
+*collada DAE contains everything including dummy nodes and skinned weight table. (tested under 3dsMax 2012)
+
+This version requires numpy to work.
+If you do not want to install numpy and do not need collada DAE export, a legacy version exists. 
+It has no module dependency but only support obj format.
+https://github.com/atacms/wot-model-converter-legacy
+
+# Attention BigWorld SDK users:
+# 'Portal' related error messages 
+Because 'hull' is a reserved keyword to identify 'portal' object in BigWorld engine, the name of a model object in 3dsmax(perhaps maya aswell) should not contain the string 'hull', otherwise an error message will be produced by BigWorld 3dsMax exporter plugin saying no valid portal is found in the scene.
+Because hull is the name of tank hull model file in WoT, this script will frequently creates objects with 'hull' in its name, causing this error.
+Just rename it to something else.
+
 
 ## Notes
 * script only parse diffuse textures
@@ -57,22 +71,23 @@ optional arguments:
 ```
 
 ## Example
-```convert-primitive.py -o Hull.obj Hull.primitives```
+```convert-primitive.py *.primitives_processed```
+will process all primitives_processed files and output .obj under current folder.
 
+```convert-primitive.py -f collada *.primitives_processed```
+will process all primitives_processed files and output .dae under current folder.
+
+```convert-primitive.py -o Hull.obj Hull.primitives```
 will output 'Hull.obj' with all model data and 'Hull.mtl' with materials
 
 ```convert-primitive.py -f collada -o Hull.dae Hull.primitives```
-
 will output 'Hull.dae'
 
-```convert-primitive.py *.primitives_processed```
-
-will process all primitives_processed files and output .obj under current folder.
 
 ```convert-primitive.py -gui```
-
 will open window with options of exports
 
 ## Requirements
-Python 2.7 - 3.5
+Python 2.7x
 numpy
+and to install numpy you might need pip if your python version doesn't have one.

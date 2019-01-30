@@ -10,10 +10,10 @@
 *.dae
 *.max
 *.txt
-*.bat
 *.rar
 *.primitives_processed
 *.visual_processed
+*.png
 
 #################
 ## Eclipse
@@ -232,3 +232,4 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 *.xml
+*.dds
