@@ -18,7 +18,7 @@ Just rename it to something else.
 ## Notes
 * script only parse diffuse textures
 * all primitive groups are packed into one exported file at this time
-* skinned weight are not supported by wavefront obj. Collada DAE can do the trick. Weight export is still in development but nodes can be exported ATM.
+* skinned weight are not supported by wavefront obj. Collada DAE can do the trick.
 * support new primitives variant used in WoT v0.9.12+ HD models. 
 * model mirroring is adapt to standard WG models. Results for models built by other parties are not guaranteed.
 * a slightly modified version of pycollada is used. The changes are not final so it's currently not linked to pycollada's github repo but instead included a copy in this project's lib folder
