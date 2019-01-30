@@ -94,6 +94,8 @@ will open window with options of exports
 ## Requirements
 Python 2.7x
 
+python-dateutil (required by pycollada)
+
 numpy
 
 and to install numpy you might need pip if your python version doesn't have one.
