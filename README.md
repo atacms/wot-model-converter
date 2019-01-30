@@ -72,22 +72,28 @@ optional arguments:
 
 ## Example
 ```convert-primitive.py *.primitives_processed```
+
 will process all primitives_processed files and output .obj under current folder.
 
 ```convert-primitive.py -f collada *.primitives_processed```
+
 will process all primitives_processed files and output .dae under current folder.
 
 ```convert-primitive.py -o Hull.obj Hull.primitives```
+
 will output 'Hull.obj' with all model data and 'Hull.mtl' with materials
 
 ```convert-primitive.py -f collada -o Hull.dae Hull.primitives```
+
 will output 'Hull.dae'
 
-
 ```convert-primitive.py -gui```
+
 will open window with options of exports
 
 ## Requirements
 Python 2.7x
+
 numpy
+
 and to install numpy you might need pip if your python version doesn't have one.
