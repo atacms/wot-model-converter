@@ -1,7 +1,7 @@
 # World of Tanks Model Converter
 Converts World of Tanks models to wavefront obj or collada dae format.
-*obj contains only geometry mesh
-*collada DAE contains everything including dummy nodes and skinned weight table. (tested under 3dsMax 2012)
+* obj contains only geometry mesh
+* collada DAE contains everything including dummy nodes and skinned weight table. (tested under 3dsMax 2012)
 
 This version requires numpy to work.
 If you do not want to install numpy and do not need collada DAE export, a legacy version exists. 
