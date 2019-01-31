@@ -18,6 +18,7 @@ from io import BytesIO
 from sys import version_info
 isSkinned = False
 import numpy
+import binascii
 
 if version_info < (3, 0, 0):
 	range = xrange
@@ -299,6 +300,7 @@ class ModelReader:
 	def readVertice(self, data, vtype):
 		global isSkinned
 		vert = Vertex()
+		x1=data.tell()
 
 		# Load basic info - xyznuv
 		(x, z, y) = unpack('<3f', data.read(12))
@@ -318,10 +320,23 @@ class ModelReader:
 			(index3, index2, index1) = unpack('3B', data.read(3))
 			(index1, index2, index3) = (index1//3, index2//3, index3//3)
 			vert.index = (index1, index2, index3)
-			vert.index2 = unpack('3B', data.read(3)) # wtf?
-			(weight1, weight2) = unpack('2B', data.read(2))
+			vert.index2 = unpack('2B', data.read(2)) # extended weight index, not used by WG for the moment
+			(weight2, weight1) = unpack('2B', data.read(2))
 			(weight1, weight2) = (weight1/255.0, weight2/255.0)
 			weight3 = 1.0 - weight1 - weight2
+			data.read(1)
+			if 0:
+#			if index3 != 1:
+#			if bool(weight1>0 and weight1<1) or bool(weight2>0 and weight2<1):
+				x2 = data.tell()
+				data.seek(x1+24)
+				print vert.position
+				print vert.index
+				print binascii.hexlify(data.read(vtype.SIZE-24))
+				print '\n weight1=%f, weight2=%f '%(weight1,weight2)
+				raw_input('intermediate weight. anykey to continue')
+				data.seek(x2)
+				
 			vert.weight = (weight1, weight2, weight3)
 			vert.tangent = unp('<I', data.read(4))
 			vert.binormal = unp('<I', data.read(4))

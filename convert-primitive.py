@@ -73,7 +73,7 @@ if not show_gui:
 	parser.add_argument('-nvn', '--novn', dest='no_vn', help='don\'t output normals', action='store_true')
 	parser.add_argument('-s', '--silent', dest='silent', help='don\'t print anything', action='store_true')
 	parser.add_argument('-f', '--format', dest='format', help='output format, obj or collada', choices=list(supported_formats))
-
+	parser.add_argument('-d', '--debug', dest='isDebug', help='debug print', action='store_true')
 
 
 	#####################################################################
@@ -161,7 +161,7 @@ if not show_gui:
 				sys.exit(1)
 
 		# Intialize readers and writers
-		model_reader = wot.ModelReader()
+		model_reader = wot.ModelReader(args.isDebug)
 		model_writer = writer_class(
 			compress=compress,
 			normals=output_vn,

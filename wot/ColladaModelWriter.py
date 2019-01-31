@@ -330,8 +330,6 @@ class ColladaModelWriter(ModelWriter):
 					
 # now mimic controller.Skin.load(collada, sourcebyid, controller, node)			
 					
-					print 'template dae has a strange shape matrix at -0.5,0.5,0'
-					print 'use identity matrix as replacement for the time being'
 
 					# bind_shape_mat is most probably the pivot location of the geometry 
 					# It's important sometimes
