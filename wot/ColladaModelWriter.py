@@ -246,7 +246,8 @@ class ColladaModelWriter(ModelWriter):
 		idxController = -1
 		for [idxRset, eleRset] in enumerate(primitive.renderSets):
 			renderSet = primitive.renderSets[idxRset]
-			if len(eleRset.nodes)>0 and eleRset.nodes[0]!='Scene Root':	#for each renderSet
+			#skinned model has actual bone nodes in this list instead of the abstract root 'Scene Root'
+			if len(eleRset.nodes)>0 and eleRset.nodes[0].strip()!='Scene Root':	#for each renderSet
 				print 'skinned renderSet'
 				print '# of primitiveGroups in this set: %d'%len(eleRset.groups)
 				boneListRaw = [v.strip() for v in renderSet.nodes ]
