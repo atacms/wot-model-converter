@@ -296,7 +296,7 @@ class ColladaModelWriter(ModelWriter):
 					data = []
 					vcount = []
 					v = []
-					indicesFromCollada = geometry.primitives[idxRset].indices
+					indicesFromCollada = geometry.primitives[0].indices
 					indicesFromCollada.shape = (-1,3)
 					vertexIndexFromCollada = []
 					for i in indicesFromCollada:
