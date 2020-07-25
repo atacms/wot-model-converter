@@ -68,6 +68,7 @@ optional arguments:
   -nvt, --novt          don't output UV coordinates
   -nvn, --novn          don't output normals
   -f FORMAT             choose output format. FORMAT accepts obj or collada. Default to wavefront obj
+  -d, --debug           verbose debug print
 ```
 
 ## Example

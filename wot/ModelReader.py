@@ -20,6 +20,7 @@ isSkinned = False
 import numpy
 import binascii
 
+
 if version_info < (3, 0, 0):
 	range = xrange
 

@@ -243,34 +243,36 @@ class ColladaModelWriter(ModelWriter):
 		mesh.assetInfo.upaxis = UP_AXIS.Z_UP
 		
 		#skinned controllers
-		
+		idxController = -1
 		for [idxRset, eleRset] in enumerate(primitive.renderSets):
-				renderSet = primitive.renderSets[idxRset]
-				if len(eleRset.nodes)>0 and eleRset.nodes[0]!='Scene Root':	#for each renderSet
-					print 'skinned renderSet'
-					print '# of primitiveGroups in this set: %d'%len(eleRset.groups)
+			renderSet = primitive.renderSets[idxRset]
+			if len(eleRset.nodes)>0 and eleRset.nodes[0]!='Scene Root':	#for each renderSet
+				print 'skinned renderSet'
+				print '# of primitiveGroups in this set: %d'%len(eleRset.groups)
+				boneListRaw = [v.strip() for v in renderSet.nodes ]
+				boneListRaw2 = [v.split('_BlendBone')[0] for v in boneListRaw]
+				if 'BlendBone' in boneListRaw2[0]:
+					boneList = [v.split('BlendBone')[0] for v in boneListRaw2]
+				else:
+					boneList = boneListRaw2
+				dataBoneList = numpy.array(boneList, dtype = numpy.string_)
+
+				for [idxGroup, eleGroup] in enumerate(eleRset.groups):
+					idxController += 1
 					sourcebyid = {}
 					sources = []
-#					ch = source.Source.load(collada, {}, sourcenode)
-#					ch = collada.source.Source
 
 #source.py:82
-					geoName = mesh.geometries[idxRset].id
+					geoName = mesh.geometries[idxController].id
 					geometry = mesh.geometries[geoName]
 					controllerName = geoName + 'Controller'
 					sourceID_joints = controllerName+'-Joints'	#this is a 'Name_array' containing controller name
 #					sourceArray = NameSource.load(collada, localscope, node)
 #					sourceArray = collada.source.NameSource( sourceid, data, tuple(components), xmlnode=node )
 #source.py:394
-					boneListRaw = [v.strip() for v in renderSet.nodes ]
-					boneListRaw2 = [v.split('_BlendBone')[0] for v in boneListRaw]
-					if 'BlendBone' in boneListRaw2[0]:
-						boneList = [v.split('BlendBone')[0] for v in boneListRaw2]
-					else:
-						boneList = boneListRaw2
-					data = numpy.array(boneList, dtype = numpy.string_)
 					components = ('JOINT',)
-					source_joints = collada.source.NameSource(sourceID_joints, data, components, None)
+					source_joints = collada.source.NameSource(sourceID_joints, dataBoneList, components, None)
+
 
 #controller matrices is a float array
 					data = []
@@ -285,7 +287,7 @@ class ColladaModelWriter(ModelWriter):
 					data = numpy.fromstring(strArray,dtype=numpy.float32, sep=' ')
 					data[numpy.isnan(data)] = 0
 					data.shape=(-1,4,4)
-					print 'size of matrics retrieved: %d'%len(data)
+					print 'number of bone matrices retrieved: %d'%len(data)
 					sourceID_matrices = controllerName+'-Matrices'
 					source_matrices = collada.source.FloatSource(sourceID_matrices ,data,(None,),None)
 
@@ -293,12 +295,13 @@ class ColladaModelWriter(ModelWriter):
 					data = []
 					vcount = []
 					v = []
-					indicesFromCollada = geometry.primitives[0].indices
+					indicesFromCollada = geometry.primitives[idxRset].indices
 					indicesFromCollada.shape = (-1,3)
 					vertexIndexFromCollada = []
 					for i in indicesFromCollada:
 						vertexIndexFromCollada.append(i[0])
-					for [idxGroup, eleGroup] in enumerate(renderSet.groups):
+#					for [idxGroup, eleGroup] in enumerate(renderSet.groups):
+					if 1:
 						ptW = 0
 						for idxV,vertex in enumerate(eleGroup.vertices):
 #						for idxV in eleGroup.indices:
@@ -326,7 +329,6 @@ class ColladaModelWriter(ModelWriter):
 					sourcebyid[source_joints.id] = source_joints
 					sourcebyid[source_matrices.id] = source_matrices
 					sourcebyid[source_weights.id] = source_weights
-#					pdb.set_trace()
 					
 # now mimic controller.Skin.load(collada, sourcebyid, controller, node)			
 					
