@@ -11,7 +11,8 @@ import sys
 import wot
 from glob import glob
 
-
+# dummy import for pyinstaller
+import collada
 
 #####################################################################
 # Import Tkinter
@@ -33,9 +34,10 @@ except:
 
 #####################################################################
 # Add libs to path
+# collada moved to project root now
 
-wd = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0, os.path.join(wd, 'lib'))
+#wd = os.path.dirname(os.path.realpath(__file__))
+#sys.path.insert(0, os.path.join(wd, 'lib'))
 
 
 

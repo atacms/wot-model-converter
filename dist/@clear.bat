@@ -1,0 +1,11 @@
+del *.model
+del *.primitives
+del *.visual
+del *.obj
+del *.mtl
+del *.primitives_processed
+del *.visual_processed
+del *.imped
+del *.bak
+del *.xml
+del *.dae
