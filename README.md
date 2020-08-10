@@ -1,6 +1,4 @@
 # World of Tanks Model Converter
-Stand-alone binary files can be found under /dist/. 
-
 Converts World of Tanks models to wavefront obj or collada dae format.
 * obj contains only geometry mesh
 * collada DAE contains everything including dummy nodes and skinned weight table. (tested under 3dsMax 2012)
@@ -100,7 +98,7 @@ will output 'Hull.dae'
 will open window with options of exports
 
 # Requirements
-Python 2.7x
+Python 2.7-3.X
 
 python-dateutil (required by pycollada)
 
