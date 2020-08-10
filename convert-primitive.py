@@ -9,6 +9,7 @@ import argparse
 import os
 import sys
 import wot
+import fnmatch
 from glob import glob
 
 # dummy import for pyinstaller
@@ -187,15 +188,30 @@ if not show_gui:
 # GUI
 
 else:
-	def unpack_file():
+	def iterfindfiles(path,fnexp):
+		for root, dirs, files in os.walk(path):
+			for filename in fnmatch.filter(files, fnexp):
+				yield os.path.join(root, filename)
+
+	def input_file():
 		if py3k:
-			filename_primitive = filedialog.askopenfilename(filetypes=(('Primitives', '*.primitives*'), ('all files', '*.*')))
+			filename = filedialog.askopenfilename(filetypes=(('Primitives', '*.primitives*'), ('all files', '*.*')))
 		else:
-			filename_primitive = tkFileDialog.Open(root, filetypes=(('Primitives', '.primitives*'), ('all files', '*.*'))).show()
+			filename = tkFileDialog.Open(root, filetypes=(('Primitives', '.primitives*'), ('all files', '*.*'))).show()
 
-		if not filename_primitive:
+		if not filename:
 			return
+		unpack(filename)
 
+	def input_folder():
+		filedirectory = filedialog.askdirectory()
+
+		if not filedirectory:
+			return
+		for filename in iterfindfiles(filedirectory, "*.primitives*"):
+			unpack(filename)
+
+	def unpack(filename_primitive):
 		scale = [1, 1, 1]
 		try:
 			scale[0] = float(root.text_scalex.get('1.0', END))
@@ -282,7 +298,9 @@ else:
 	rbutton_obj.grid(row=6, column=0)
 	rbutton_collada.grid(row=6, column=1)
 
-	btn_unpack = ttk.Button(root, text='Unpack', command=unpack_file)
-	btn_unpack.grid(row=7, column=0, columnspan = 2)
+	btn_input_file = ttk.Button(root, text='input_file', command=input_file)
+	btn_input_file.grid(row=7, column=0)
+	btn_input_folder = ttk.Button(root, text='input_folder', command=input_folder)
+	btn_input_folder.grid(row=7, column=1)
 
 	root.mainloop()
