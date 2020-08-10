@@ -204,7 +204,10 @@ else:
 		unpack(filename)
 
 	def input_folder():
-		filedirectory = filedialog.askdirectory()
+		if py3k:
+			filedirectory = filedialog.askdirectory()
+		else:
+			filedirectory = tkFileDialog.askdirectory()
 
 		if not filedirectory:
 			return
