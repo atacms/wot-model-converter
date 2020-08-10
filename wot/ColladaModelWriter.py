@@ -54,7 +54,7 @@ class ColladaModelWriter(ModelWriter):
 		for ele in inDict['children']:
 			if ele == name:	#we have a match, return child's matrix
 				xarray = m12to16bind(inDict['children'][ele]['transform'])	#data here is a 16x1 list
-				print xarray
+				print (xarray)
 				'''
 				rmatrix = collada.scene.RotateTransform(1,0,0,90)
 				rmatrix2 = collada.scene.RotateTransform(0,1,0,0)
@@ -194,7 +194,7 @@ class ColladaModelWriter(ModelWriter):
 					normal_values.extend(self.multiply(vertex.normal, scale))
 					uv_values.extend(vertex.uv)
 					xc+=1
-				print 'position vector count:%d'%xc
+				print ('position vector count:%d'%xc)
 
 				vert_src = collada.source.FloatSource(
 					'%s_verts' % name,
@@ -248,8 +248,8 @@ class ColladaModelWriter(ModelWriter):
 			renderSet = primitive.renderSets[idxRset]
 			#skinned model has actual bone nodes in this list instead of the abstract root 'Scene Root'
 			if len(eleRset.nodes)>0 and eleRset.nodes[0].strip()!='Scene Root':	#for each renderSet
-				print 'skinned renderSet'
-				print '# of primitiveGroups in this set: %d'%len(eleRset.groups)
+				print ('skinned renderSet')
+				print ('# of primitiveGroups in this set: %d'%len(eleRset.groups))
 				boneListRaw = [v.strip() for v in renderSet.nodes ]
 				boneListRaw2 = [v.split('_BlendBone')[0] for v in boneListRaw]
 				if 'BlendBone' in boneListRaw2[0]:
@@ -288,7 +288,7 @@ class ColladaModelWriter(ModelWriter):
 					data = numpy.fromstring(strArray,dtype=numpy.float32, sep=' ')
 					data[numpy.isnan(data)] = 0
 					data.shape=(-1,4,4)
-					print 'number of bone matrices retrieved: %d'%len(data)
+					print ('number of bone matrices retrieved: %d'%len(data))
 					sourceID_matrices = controllerName+'-Matrices'
 					source_matrices = collada.source.FloatSource(sourceID_matrices ,data,(None,),None)
 
@@ -362,16 +362,16 @@ class ColladaModelWriter(ModelWriter):
 		'''
 		#new scene:
 		#_unpackNodesToScene
-		print 'dumping scene to collada '
+		print ('dumping scene to collada ')
 		nodes=[]
 		for ele in primitive.nodes[sceneRootName]['children']:
 			nodes.append( self._readScene(ele,primitive.nodes[sceneRootName]['children'][ele]))
 #		sceneRootNode.transforms = []		#somehow i'm getting -100% scaling at SceneRoot
 		if len(mesh._controllers)==0:
-			print '******not skinned'
+			print ('******not skinned')
 			nodes.append(collada.scene.Node('node0', children=node_children))
 		else:
-			print '******skinned'
+			print ('******skinned')
 			
 			for ele in mesh._controllers:
 				node_children_skinned = []
