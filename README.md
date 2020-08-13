@@ -1,6 +1,4 @@
 # World of Tanks Model Converter
-Stand-alone binary files can be found under /dist/. 
-
 Converts World of Tanks models to wavefront obj or collada dae format.
 * obj contains only geometry mesh
 * collada DAE contains everything including dummy nodes and skinned weight table. (tested under 3dsMax 2012)
@@ -28,7 +26,7 @@ Just rename it to something else.
 * skinned weight are not supported by wavefront obj. Collada DAE can do the trick.
 * support new primitives variant used in WoT v0.9.12+ HD models. 
 * model mirroring is adapt to standard WG models. Results for models built by other parties are not guaranteed.
-* a slightly modified version of pycollada is used. The changes are not final so it's currently not linked to pycollada's github repo but instead included a copy in this project's lib folder
+* a slightly modified version of pycollada is used. The changes are not final so it's currently not linked to pycollada's github repo but instead included a copy in this project's collada folder
 
 # Additional credits (not mentioned on github)
 Thanks to Phux_and_the_Wheel_Bearing (AKA Coffee_), from whose code this script originates
@@ -79,6 +77,10 @@ optional arguments:
 ```
 
 # Example
+```convert-primitive.py -gui```
+
+will open window with options of exports
+
 ```convert-primitive.py *.primitives_processed```
 
 will process all primitives_processed files and output .obj under current folder.
@@ -95,12 +97,8 @@ will output 'Hull.obj' with all model data and 'Hull.mtl' with materials
 
 will output 'Hull.dae'
 
-```convert-primitive.py -gui```
-
-will open window with options of exports
-
 # Requirements
-Python 2.7x
+Python 2.7-3.X
 
 python-dateutil (required by pycollada)
 

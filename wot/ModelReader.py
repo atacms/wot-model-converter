@@ -331,10 +331,10 @@ class ModelReader:
 #			if bool(weight1>0 and weight1<1) or bool(weight2>0 and weight2<1):
 				x2 = data.tell()
 				data.seek(x1+24)
-				print vert.position
-				print vert.index
-				print binascii.hexlify(data.read(vtype.SIZE-24))
-				print '\n weight1=%f, weight2=%f '%(weight1,weight2)
+				print (vert.position)
+				print (vert.index)
+				print (binascii.hexlify(data.read(vtype.SIZE-24)))
+				print ('\n weight1=%f, weight2=%f '%(weight1,weight2))
 				raw_input('intermediate weight. anykey to continue')
 				data.seek(x2)
 				
