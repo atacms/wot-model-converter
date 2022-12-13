@@ -90,7 +90,8 @@ if not show_gui:
 	output_vn = True
 	textures_path = ''
 	silent = False
-	writer_class = wot.OBJModelWriter
+#	writer_class = wot.OBJModelWriter
+	writer_class = wot.ColladaModelWriter	#another default
 
 
 

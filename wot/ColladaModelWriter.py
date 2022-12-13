@@ -49,6 +49,7 @@ class ColladaModelWriter(ModelWriter):
 		self.compress = compress
 		self.scale = scale
 
+
 	def _getMatrixByName(self, inDict, name):
 		import collada, numpy
 		for ele in inDict['children']:
@@ -134,10 +135,25 @@ class ColladaModelWriter(ModelWriter):
 		# Create result mesh
 		mesh = collada.Collada()
 		node_children = []
+		sceneRootName = primitive.nodes.keys()[0]
+
 
 		# Export all primitiveGroups in renderSets as separate obejcts
+#		idxController = 0
+		print ('# of renderSet in this model bundle: %d'%len(primitive.renderSets))
 		for rindex, render_set in enumerate(primitive.renderSets):
+			print '----------------------------------------------------'
+			print 'dumping renderSet No.%d'%rindex
+			boneListRaw = [v.strip() for v in render_set.nodes ]
+			boneListRaw2 = [v.split('_BlendBone')[0] for v in boneListRaw]
+			if 'BlendBone' in boneListRaw2[0]:
+					boneList = [v.split('BlendBone')[0] for v in boneListRaw2]
+			else:
+					boneList = boneListRaw2
+			dataBoneList = numpy.array(boneList, dtype = numpy.string_)
+			print ('# of primitiveGroup in this set: %d'%len(render_set.groups))
 			for gindex, group in enumerate(render_set.groups):
+#				print 'gindex=%d'%gindex
 				material = group.material
 
 				name = 'set_%d_group_%d' % (rindex, gindex)
@@ -194,7 +210,7 @@ class ColladaModelWriter(ModelWriter):
 					normal_values.extend(self.multiply(vertex.normal, scale))
 					uv_values.extend(vertex.uv)
 					xc+=1
-				print ('position vector count:%d'%xc)
+				print ('position vector count of group%d: %d'%(gindex,xc))
 
 				vert_src = collada.source.FloatSource(
 					'%s_verts' % name,
@@ -224,47 +240,24 @@ class ColladaModelWriter(ModelWriter):
 					input_list,
 					material_ref)
 				geom.primitives.append(triset)
-				mesh.geometries.append(geom)
 
 				if matnode is not None:
 					geomnode = collada.scene.GeometryNode(geom, [matnode])
 				else:
 					geomnode = collada.scene.GeometryNode(geom, [])
+				mesh.geometries.append(geom)
 
-				node_children.append(geomnode)
-
-		sceneRootName = primitive.nodes.keys()[0]
-
-		
-		#asset info for WoT (1 unit/meter, Z_UP)
-		from collada.asset import UP_AXIS
-		mesh.assetInfo.unitname = 'meter'
-		mesh.assetInfo.unitmeter = 1.0
-		mesh.assetInfo.upaxis = UP_AXIS.Z_UP
-		
-		#skinned controllers
-		idxController = -1
-		for [idxRset, eleRset] in enumerate(primitive.renderSets):
-			renderSet = primitive.renderSets[idxRset]
-			#skinned model has actual bone nodes in this list instead of the abstract root 'Scene Root'
-			if len(eleRset.nodes)>0 and eleRset.nodes[0].strip()!='Scene Root':	#for each renderSet
-				print ('skinned renderSet')
-				print ('# of primitiveGroups in this set: %d'%len(eleRset.groups))
-				boneListRaw = [v.strip() for v in renderSet.nodes ]
-				boneListRaw2 = [v.split('_BlendBone')[0] for v in boneListRaw]
-				if 'BlendBone' in boneListRaw2[0]:
-					boneList = [v.split('BlendBone')[0] for v in boneListRaw2]
-				else:
-					boneList = boneListRaw2
-				dataBoneList = numpy.array(boneList, dtype = numpy.string_)
-
-				for [idxGroup, eleGroup] in enumerate(eleRset.groups):
-					idxController += 1
+				if not render_set.isSkinned:
+					node_children.append(geomnode)
+#				idxController += 1
+				if render_set.isSkinned:
+					print ('skinned renderSet')
 					sourcebyid = {}
-					sources = []
+					sources = []		#obsolete?
 
 #source.py:82
-					geoName = mesh.geometries[idxController].id
+#					geoName = mesh.geometries[idxController].id
+					geoName = name
 					geometry = mesh.geometries[geoName]
 					controllerName = geoName + 'Controller'
 					sourceID_joints = controllerName+'-Joints'	#this is a 'Name_array' containing controller name
@@ -304,9 +297,9 @@ class ColladaModelWriter(ModelWriter):
 #					for [idxGroup, eleGroup] in enumerate(renderSet.groups):
 					if 1:
 						ptW = 0
-						for idxV,vertex in enumerate(eleGroup.vertices):
-#						for idxV in eleGroup.indices:
-#							vertex = eleGroup.vertices[idxV]
+						for idxV,vertex in enumerate(group.vertices):
+#						for idxV in group.indices:
+#							vertex = group.vertices[idxV]
 #							print 'weight of vertex %d is %s' %(idxV,str(vertex.weight)) 
 							vc=0
 							lstBone = vertex.index
@@ -352,6 +345,14 @@ class ColladaModelWriter(ModelWriter):
                 geometry, None, None, controllerName)
 					mesh.controllers.append(controller_skin)
 					
+
+		
+		#asset info for WoT (1 unit/meter, Z_UP)
+		from collada.asset import UP_AXIS
+		mesh.assetInfo.unitname = 'meter'
+		mesh.assetInfo.unitmeter = 1.0
+		mesh.assetInfo.upaxis = UP_AXIS.Z_UP
+					
 		#this is why we're missing all the dummy nodes.
 		#rewrite this section
 		'''
@@ -367,9 +368,19 @@ class ColladaModelWriter(ModelWriter):
 		for ele in primitive.nodes[sceneRootName]['children']:
 			nodes.append( self._readScene(ele,primitive.nodes[sceneRootName]['children'][ele]))
 #		sceneRootNode.transforms = []		#somehow i'm getting -100% scaling at SceneRoot
+		try:
+			_injectionName = node_children[0].geometry.id
+		except:
+			_injectionName = 'node1'
+		nodes.append(collada.scene.Node(_injectionName, children=node_children))
+		if len(mesh._controllers)>0:
+			for ele in mesh._controllers:
+				node_children_skinned = []
+				node_children_skinned.append(collada.scene.ControllerNode(ele,[]))	#todo: material node support
+				nodes.append(collada.scene.Node(ele.id.rstrip('Controller'), children=node_children_skinned))
+		'''
 		if len(mesh._controllers)==0:
 			print ('******not skinned')
-			nodes.append(collada.scene.Node('node0', children=node_children))
 		else:
 			print ('******skinned')
 			
@@ -377,6 +388,7 @@ class ColladaModelWriter(ModelWriter):
 				node_children_skinned = []
 				node_children_skinned.append(collada.scene.ControllerNode(ele,[]))	#todo: material node support
 				nodes.append(collada.scene.Node(ele.id.rstrip('Controller'), children=node_children_skinned))
+		'''
 		myscene = collada.scene.Scene('myscene', nodes)
 		mesh.scenes.append(myscene)
 		mesh.scene = myscene

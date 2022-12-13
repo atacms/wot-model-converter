@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 from struct import unpack
 from io import BytesIO
 from sys import version_info
-isSkinned = False
+isSkinnedFile = False
 import numpy
 import binascii
 
@@ -136,7 +136,11 @@ class ModelReader:
 		# Load render sets
 		sets = []
 		for render_set in visual.findall('renderSet'):
-			# Nodes - purpose unknown
+			isSkinnedSet = False	#this will be known when actually seen the first material in the set
+			# Nodes - nodes associated with this set. 
+			#    static render in static visual:  default to a single 'scene root'
+			#    static render in skinned visual: parent node
+			#    skinned render in skinned visual: bones used in the skinning. sequence matters.
 			set_nodes = [v.text for v in render_set.findall('node')]
 
 			# Names of sections used in this render set
@@ -174,6 +178,9 @@ class ModelReader:
 			primitive_groups = []
 			for group in render_set.find('geometry').findall('primitiveGroup'):
 				material = self.readMaterial(group.find('material'))
+#				print material.fx
+				if 'skinned' in material.fx:
+					isSkinnedSet = True
 				origin = group.find('groupOrigin')
 				if origin is not None:
 					origin = tuple(map(float, origin.text.strip().split(' ')))
@@ -220,7 +227,8 @@ class ModelReader:
 			# Save render set
 			sets.append(RenderSet(
 				nodes = set_nodes,
-				groups = primitive_groups
+				groups = primitive_groups,
+				isSkinned = isSkinnedSet
 			))
 
 		return Primitive(
@@ -299,14 +307,14 @@ class ModelReader:
 				return vt_XYZNUV
 
 	def readVertice(self, data, vtype):
-		global isSkinned
+		global isSkinnedFile
 		vert = Vertex()
 		x1=data.tell()
 
 		# Load basic info - xyznuv
 		(x, z, y) = unpack('<3f', data.read(12))
 		if vtype.IS_SKINNED:	#invert Y here seems to be causing trouble for some subtype of skinned parts. WG is roughly unaffected. customized export without invert face is wrong. with invert faces is not tested
-			isSkinned = True
+			isSkinnedFile = True
 			y = -y		#maybe to move this mechanism to obj export module to protect the integrity of main data repository.
 		vert.position = (x, y, z)
 		vert.normal = self.readNormal(data, vtype.IS_NEW)
@@ -500,10 +508,12 @@ class Primitive:
 class RenderSet:
 	nodes = None
 	groups = None
+	isSkinned = False
 
-	def __init__(self, nodes, groups):
+	def __init__(self, nodes, groups, isSkinned):
 		self.nodes = nodes
 		self.groups = groups
+		self.isSkinned = isSkinned
 
 
 
