@@ -159,7 +159,9 @@ class ModelReader:
 			uv2 = None
 			colour = None
 			if stream_name and stream_name in sections:
-				data, type = self.readStream(sections[stream_name]['data'])
+				print 'found stream: %s'%stream_name
+				print sections[stream_name]
+				data, type = self.readStream(sections[stream_name])
 				if type == 'colour':
 					colour = data
 				elif 'uv2' in type:
@@ -443,20 +445,38 @@ class ModelReader:
 
 		return (indices, groups)
 
-	def readStream(self, data):
+	def readStream(self, section):
+		data = section['data']
+		stream_name = section['name']
+		size = section['size']
 		self.out('== STREAM')
 		result = []
 
 		# Read type (ended by \x00)
-		type = data.read(64).split(b'\x00')[0].decode('UTF-8')
-		subtype = None
-		count = unp('I', data.read(4))
-
-		if 'BPV' in type:
-			subtype = data.read(64).split(b'\x00')[0].decode('UTF-8')
+		try:
+			type = data.read(64).split(b'\x00')[0].decode('UTF-8')
+			subtype = None
 			count = unp('I', data.read(4))
 
-		self.out('stream type (%s %s) count %d' % (type, subtype, count))
+			if 'BPV' in type:
+				subtype = data.read(64).split(b'\x00')[0].decode('UTF-8')
+				count = unp('I', data.read(4))
+
+			self.out('stream type (%s %s) count %d' % (type, subtype, count))
+		except:		#data type header is not present. the entire section is raw data
+			print "!!!invalid stream data format header."
+			print "Most likely this model is made by old BW SDK (2.1.x) which can not specify stream format"
+			print "will treat the entire stream as raw data"
+			data.seek(0)
+			if '.uv2' in stream_name:
+				type = 'uv2'
+				subtype = 'uv2'
+				count = size/8
+			elif '.colour' in stream_name:
+				type = 'colour'
+				subtype = 'colour'
+				count = size/4
+			
 
 		for i in range(count):
 			if subtype == 'colour':

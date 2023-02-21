@@ -196,19 +196,26 @@ class ColladaModelWriter(ModelWriter):
 				vert_values = []
 				normal_values = []
 				uv_values = []
+				uv2_values = []
+				colour_values = []
 				indices = []
+#				has_uv2 = False
+#				has_colour = False
 
-				for value in group.indices:
-					indices.append(value)
-					indices.append(value)
-					indices.append(value)
 
 				# Add group vertices
 				xc=0
+				_ = 5	#temp print limiter
 				for vertex in group.vertices:
 					vert_values.extend(self.multiply(vertex.position, scale))
 					normal_values.extend(self.multiply(vertex.normal, scale))
 					uv_values.extend(vertex.uv)
+					if vertex.uv2:
+#						has_uv2 = True
+						uv2_values.extend(vertex.uv2)
+					if vertex.colour:
+#						has_colour = True
+						colour_values.extend(vertex.colour)
 					xc+=1
 				print ('position vector count of group%d: %d'%(gindex,xc))
 
@@ -224,17 +231,53 @@ class ColladaModelWriter(ModelWriter):
 					'%s_uv' % name,
 					numpy.array(uv_values),
 					('S', 'T'))
+				if len(uv2_values):
+					uv2_src = collada.source.FloatSource(
+						'%s_uv2' % name,
+						numpy.array(uv2_values),
+						('S', 'T'))
+				else:
+					uv2_src = None
+				if len(colour_values):
+					colour_src = collada.source.FloatSource(
+						'%s_colour' % name,
+						numpy.array(colour_values),
+						('R', 'G', 'B','A'))
+				else:
+					colour_src = None
+
+				for value in group.indices:
+					indices.append(value)	#basic channel 0:VERTEX
+					indices.append(value)	#basic channel 1:NORMAL
+					indices.append(value)	#basic channel 2:TEXCOORD (uv1)
+					if colour_src:
+						indices.append(value)	#stream channel :TEXCOORD (uv2)
+					if uv2_src:
+						indices.append(value)	#stream channel :COLOUR
+
 
 				input_list = collada.source.InputList()
 				input_list.addInput(0, 'VERTEX', '#%s_verts' % name)
 				input_list.addInput(1, 'NORMAL', '#%s_normals' % name)
-				input_list.addInput(2, 'TEXCOORD', '#%s_uv' % name)
+				input_list.addInput(2, 'TEXCOORD', '#%s_uv' % name, '0')
+				_idx = 2
+				if colour_src:
+					_idx += 1
+					input_list.addInput(_idx, 'COLOR', '#%s_colour' % name)
+				if uv2_src:
+					_idx += 1
+					input_list.addInput(_idx, 'TEXCOORD', '#%s_uv2' % name, '1')
 
+				listSrcGeo = [vert_src, normal_src, uv_src]
+				if colour_src:
+					listSrcGeo.append(colour_src)
+				if uv2_src:
+					listSrcGeo.append(uv2_src)
 				geom = collada.geometry.Geometry(
 					mesh,
 					name,
 					name,
-					[vert_src, normal_src, uv_src])
+					listSrcGeo)
 				triset = geom.createTriangleSet(
 					numpy.array(indices),
 					input_list,
