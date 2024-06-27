@@ -129,8 +129,8 @@ class ModelReader:
 		nodes = {}
 		nodes['Scene Root'] = self.readNode(visual.find('node'))
 		boundingBox = [
-			[float(v) for v in visual.find('boundingBox').find('min').text.split(' ')],
-			[float(v) for v in visual.find('boundingBox').find('max').text.split(' ')]
+			[float(v) for v in visual.find('boundingBox').find('min').text.replace(',','.').split(' ')],
+			[float(v) for v in visual.find('boundingBox').find('max').text.replace(',','.').split(' ')]
 		]
 
 		# Load render sets
@@ -185,7 +185,7 @@ class ModelReader:
 					isSkinnedSet = True
 				origin = group.find('groupOrigin')
 				if origin is not None:
-					origin = tuple(map(float, origin.text.strip().split(' ')))
+					origin = tuple(map(float, origin.text.replace(',','.').strip().split(' ')))
 				index = int(group.text.strip())
 
 				i_from = groups[index]['startIndex']
@@ -489,12 +489,12 @@ class ModelReader:
 	def readNode(self, element):
 		element_transform = element.find('transform')
 		if element_transform.text.strip():
-			rows = element_transform.text.strip().split(' ')
+			rows = element_transform.text.replace(',','.').strip().split(' ')
 		else:
-			rows = element_transform.find('row0').text.strip().split(' ') + \
-				element_transform.find('row1').text.strip().split(' ') + \
-				element_transform.find('row2').text.strip().split(' ') + \
-				element_transform.find('row3').text.strip().split(' ')
+			rows = element_transform.find('row0').text.replace(',','.').strip().split(' ') + \
+				element_transform.find('row1').text.replace(',','.').strip().split(' ') + \
+				element_transform.find('row2').text.replace(',','.').strip().split(' ') + \
+				element_transform.find('row3').text.replace(',','.').strip().split(' ')
 		node = {
 			'transform': [float(v) for v in rows],
 			'children': {}
